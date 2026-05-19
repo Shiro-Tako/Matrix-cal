@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Matrix Diagonalization Tool</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; background:#f5f7fb; color:#1f2937; }
+    h1 { margin-bottom: 6px; }
+    .card { background: white; padding: 18px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.08); max-width: 980px; }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+    .matrix-grid { display: grid; gap: 8px; margin: 14px 0; }
+    .matrix-grid input { width: 88px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; }
+    button { background:#2563eb; color: white; border:none; padding:10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    button:hover { background:#1d4ed8; }
+    pre { background:#0f172a; color:#e2e8f0; padding:14px; border-radius:8px; overflow:auto; }
+    select { padding: 8px; border-radius: 8px; border:1px solid #cbd5e1; }
+    .muted { color:#475569; font-size:.95rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Matrix Assignment Helper (2x2 / 3x3)</h1>
+    <p class="muted">Input matrix A แล้วโปรแกรมจะหา eigenvalues, eigenvectors, ตรวจสอบ diagonalizable, และแสดง P, P⁻¹, D ถ้าทำได้</p>
+
+    <div class="row">
+      <label for="size">Matrix size:</label>
+      <select id="size">
+        <option value="2">2 x 2</option>
+        <option value="3">3 x 3</option>
+      </select>
+      <button id="solveBtn">Compute</button>
+    </div>
+
+    <div id="matrixContainer" class="matrix-grid"></div>
+
+    <h3>Result</h3>
+    <pre id="output">Fill matrix values then click Compute.</pre>
+  </div>
+
+  <script>
+    const sizeEl = document.getElementById('size');
+    const matrixContainer = document.getElementById('matrixContainer');
+    const out = document.getElementById('output');
+
+    const EPS = 1e-8;
+
+    function buildInputs() {
+      const n = Number(sizeEl.value);
+      matrixContainer.style.gridTemplateColumns = `repeat(${n}, 92px)`;
+      matrixContainer.innerHTML = '';
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          const input = document.createElement('input');
+          input.type = 'number';
+          input.step = 'any';
+          input.value = r === c ? '1' : '0';
+          input.id = `a_${r}_${c}`;
+          matrixContainer.appendChild(input);
+        }
+      }
+    }
+
+    function readMatrix() {
+      const n = Number(sizeEl.value);
+      const A = Array.from({length:n}, (_,r) => Array.from({length:n}, (_,c) => {
+        const v = Number(document.getElementById(`a_${r}_${c}`).value);
+        return Number.isFinite(v) ? v : 0;
+      }));
+      return A;
+    }
+
+    function cloneMat(A){ return A.map(row => [...row]); }
+    function eye(n){ return Array.from({length:n}, (_,i)=>Array.from({length:n}, (_,j)=>i===j?1:0)); }
+    function mul(A,B){
+      const n=A.length,m=B[0].length,k=B.length;
+      const C=Array.from({length:n},()=>Array(m).fill(0));
+      for(let i=0;i<n;i++)for(let j=0;j<m;j++)for(let t=0;t<k;t++)C[i][j]+=A[i][t]*B[t][j];
+      return C;
+    }
+    function sub(A,B){ return A.map((row,i)=>row.map((v,j)=>v-B[i][j])); }
+    function transpose(A){ return A[0].map((_,j)=>A.map(row=>row[j])); }
+    function norm(v){ return Math.sqrt(v.reduce((s,x)=>s+x*x,0)); }
+
+    function qrDecompose(A){
+      const n=A.length;
+      const Q=Array.from({length:n},()=>Array(n).fill(0));
+      const R=Array.from({length:n},()=>Array(n).fill(0));
+      const V=transpose(A);
+      const U=[];
+      for(let i=0;i<n;i++){
+        let u=[...V[i]];
+        for(let j=0;j<i;j++){
+          const dot=V[i].reduce((s,x,k)=>s+x*U[j][k],0);
+          R[j][i]=dot;
+          u=u.map((x,k)=>x-dot*U[j][k]);
+        }
+        const uNorm=norm(u) || EPS;
+        R[i][i]=uNorm;
+        const e=u.map(x=>x/uNorm);
+        U.push(e);
+      }
+      for(let i=0;i<n;i++)for(let j=0;j<n;j++)Q[j][i]=U[i][j];
+      return {Q,R};
+    }
+
+    function qrEigenvalues(A, maxIter=200){
+      let Ak=cloneMat(A);
+      const n=A.length;
+      for(let iter=0;iter<maxIter;iter++){
+        const {Q,R}=qrDecompose(Ak);
+        Ak=mul(R,Q);
+      }
+      const vals=[];
+      for(let i=0;i<n;i++) vals.push(Ak[i][i]);
+      return vals;
+    }
+
+    function rref(M){
+      const A=cloneMat(M);
+      const rows=A.length, cols=A[0].length;
+      let r=0;
+      const pivots=[];
+      for(let c=0;c<cols && r<rows;c++){
+        let piv=r;
+        for(let i=r+1;i<rows;i++) if(Math.abs(A[i][c])>Math.abs(A[piv][c])) piv=i;
+        if(Math.abs(A[piv][c])<EPS) continue;
+        [A[r],A[piv]]=[A[piv],A[r]];
+        const div=A[r][c];
+        for(let j=c;j<cols;j++) A[r][j]/=div;
+        for(let i=0;i<rows;i++){
+          if(i===r) continue;
+          const factor=A[i][c];
+          if(Math.abs(factor)<EPS) continue;
+          for(let j=c;j<cols;j++) A[i][j]-=factor*A[r][j];
+        }
+        pivots.push(c);
+        r++;
+      }
+      return {A,pivots};
+    }
+
+    function eigenvectorForLambda(A, lambda){
+      const n=A.length;
+      const M=A.map((row,i)=>row.map((v,j)=>v-(i===j?lambda:0)));
+      const {A:R,pivots}=rref(M);
+      const free=[];
+      for(let c=0;c<n;c++) if(!pivots.includes(c)) free.push(c);
+      if(!free.length) return [];
+      const vectors=[];
+      for(const f of free){
+        const x=Array(n).fill(0); x[f]=1;
+        for(let i=pivots.length-1;i>=0;i--){
+          const pc=pivots[i];
+          let s=0;
+          for(let j=pc+1;j<n;j++) s+=R[i][j]*x[j];
+          x[pc]=-s;
+        }
+        const nrm=norm(x)||1;
+        vectors.push(x.map(v=>v/nrm));
+      }
+      return vectors;
+    }
+
+    function uniqueApprox(values){
+      const out=[];
+      for(const v of values){
+        const hit=out.find(o=>Math.abs(o-v)<1e-5);
+        if(!hit) out.push(v);
+      }
+      return out;
+    }
+
+    function inverse(A){
+      const n=A.length;
+      const M=A.map((row,i)=>[...row, ...eye(n)[i]]);
+      const {A:R,pivots}=rref(M);
+      if(pivots.length<n) return null;
+      return R.map(row=>row.slice(n));
+    }
+
+    function fmtMat(A){
+      return A.map(r=>`[ ${r.map(v=>v.toFixed(6)).join(' , ')} ]`).join('\n');
+    }
+
+    function solve(){
+      const A=readMatrix();
+      const vals=qrEigenvalues(A);
+      const uniq=uniqueApprox(vals);
+      let text='A =\n'+fmtMat(A)+'\n\n';
+      text+='1) Eigenvalues (approx):\n';
+      text+=vals.map((v,i)=>`λ${i+1} = ${v.toFixed(6)}`).join('\n')+'\n\n';
+      text+='2) Eigenvectors:\n';
+
+      const eigenPairs=[];
+      for(const l of uniq){
+        const vecs=eigenvectorForLambda(A,l);
+        text+=`For λ = ${l.toFixed(6)}\n`;
+        if(!vecs.length){
+          text+='  - Could not compute a real eigenvector numerically.\n';
+        } else {
+          vecs.forEach((v,idx)=> text+=`  v${idx+1} = [${v.map(x=>x.toFixed(6)).join(', ')}]\n`);
+          vecs.forEach(v=>eigenPairs.push({lambda:l, vec:v}));
+        }
+      }
+      text+='\n3) Diagonalizable?\n';
+
+      if(eigenPairs.length < A.length){
+        text += 'No. Reason: number of independent eigenvectors is less than matrix size.\n';
+      } else {
+        const P = Array.from({length:A.length}, (_,r)=>eigenPairs.slice(0,A.length).map(p=>p.vec[r]));
+        const Pinv = inverse(P);
+        if(!Pinv){
+          text += 'No. Reason: eigenvector matrix P is singular (vectors not independent).\n';
+        } else {
+          const D = mul(Pinv,mul(A,P));
+          text += 'Yes.\n\n4) P, P^-1, D = P^-1 A P\n';
+          text += 'P =\n'+fmtMat(P)+'\n\n';
+          text += 'P^-1 =\n'+fmtMat(Pinv)+'\n\n';
+          text += 'D =\n'+fmtMat(D)+'\n\n';
+          text += '5) If not diagonalizable, reason is shown above.\n';
+        }
+      }
+      out.textContent = text;
+    }
+
+    sizeEl.addEventListener('change', buildInputs);
+    document.getElementById('solveBtn').addEventListener('click', solve);
+    buildInputs();
+  </script>
+</body>
+</html>
