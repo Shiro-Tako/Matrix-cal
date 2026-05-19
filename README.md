@@ -1,21 +1,69 @@
-# Matrix-cal (GitHub Pages Ready)
+# Matrix-cal (พร้อมใช้งานบน GitHub Pages)
 
-This version runs **purely on GitHub Pages** (static files only).
+โปรเจกต์นี้เป็นเว็บแอปแบบ **Static Site** สำหรับช่วยคำนวณเรื่องการแปลงเมทริกซ์ให้อยู่ในรูปเส้นทแยงมุม (Diagonalization) โดยรองรับเมทริกซ์ขนาด **2x2** และ **3x3**
 
-## Files
-- `index.html` → frontend UI
-- `matrix_calc.js` → matrix calculation logic (separate file)
+## โครงสร้างไฟล์
+- `index.html` : หน้าเว็บและส่วนติดต่อผู้ใช้ (UI)
+- `matrix_calc.js` : โค้ดคำนวณเชิงเส้นทั้งหมด (eigenvalues, eigenvectors, ตรวจสอบ diagonalizable, หา P, P^-1 และ D)
 
-## Run locally
-Open `index.html` in browser (or use Live Server).
+---
 
-## Deploy on GitHub Pages
-1. Push these files to your GitHub repository.
-2. Go to **Settings** → **Pages**.
-3. In **Build and deployment**:
+## โปรแกรมทำงานอย่างไร
+
+### 1) การรับค่าจากผู้ใช้
+1. ผู้ใช้เลือกขนาดเมทริกซ์จากช่อง `Size` (2x2 หรือ 3x3)
+2. ระบบจะสร้างช่องกรอกตัวเลขตามขนาดที่เลือกอัตโนมัติ
+3. ค่าเริ่มต้นในตารางคือเมทริกซ์เอกลักษณ์ (ค่าแนวทแยงเป็น 1 ที่เหลือเป็น 0)
+
+### 2) เมื่อกดปุ่ม `Compute`
+ระบบจะ:
+1. อ่านค่าจากช่องกรอกทั้งหมดและสร้างเป็นเมทริกซ์ `A`
+2. ส่ง `A` เข้าไปในฟังก์ชัน `buildReport(A)` ในไฟล์ `matrix_calc.js`
+3. แสดงผลลัพธ์เป็นข้อความในกล่อง `Result`
+
+### 3) ขั้นตอนคำนวณหลักใน `matrix_calc.js`
+ฟังก์ชัน `buildReport(A)` จะทำงานตามลำดับนี้:
+
+1. **ตรวจสอบข้อมูลนำเข้า**
+   - ต้องเป็นเมทริกซ์จัตุรัสขนาด 2x2 หรือ 3x3 เท่านั้น
+
+2. **หา Eigenvalues (ค่าเฉพาะ)**
+   - ใช้วิธี QR Iteration (`qrEigenvalues`) เพื่อประมาณค่า eigenvalues
+
+3. **หา Eigenvectors (เวกเตอร์เฉพาะ)**
+   - สำหรับแต่ละค่า eigenvalue จะสร้างเมทริกซ์ `(A - λI)`
+   - ทำ Reduced Row Echelon Form (RREF)
+   - หาเวกเตอร์จากตัวแปรอิสระของระบบสมการ
+
+4. **ตรวจสอบว่า Diagonalizable หรือไม่**
+   - ถ้าจำนวน eigenvectors อิสระไม่พอเท่าขนาดเมทริกซ์ → **ไม่สามารถ diagonalize ได้**
+
+5. **ถ้า diagonalize ได้**
+   - สร้างเมทริกซ์ `P` จาก eigenvectors
+   - หา `P^-1` (inverse ของ P)
+   - คำนวณ `D = P^-1 A P`
+
+6. **สรุปผลเป็นรายงาน**
+   - แสดงเมทริกซ์ A
+   - แสดง eigenvalues/eigenvectors
+   - แสดงผลว่า diagonalizable หรือไม่
+   - ถ้าได้ จะแสดง `P`, `P^-1`, `D`
+   - ถ้าไม่ได้ จะแสดงเหตุผล
+
+---
+
+## วิธีรันในเครื่อง (Local)
+เปิดไฟล์ `index.html` ด้วยเบราว์เซอร์ได้ทันที
+
+> แนะนำ: ใช้ Live Server เพื่อความสะดวกเวลาแก้โค้ด
+
+## วิธี Deploy ขึ้น GitHub Pages
+1. Push ไฟล์ทั้งหมดขึ้น GitHub repository
+2. ไปที่ **Settings → Pages**
+3. ตั้งค่าในหัวข้อ **Build and deployment**
    - Source: **Deploy from a branch**
-   - Branch: `main` (or `master`), folder `/ (root)`
-4. Save.
-5. Wait 1-2 minutes, then open the Pages URL shown by GitHub.
+   - Branch: `main` (หรือ `master`) และโฟลเดอร์ `/ (root)`
+4. กด Save แล้วรอประมาณ 1–2 นาที
+5. เปิด URL ของ GitHub Pages ที่ระบบแสดง
 
-No server is needed.
+ไม่ต้องใช้เซิร์ฟเวอร์ backend เพิ่มเติม
