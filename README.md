@@ -51,19 +51,3 @@
    - ถ้าไม่ได้ จะแสดงเหตุผล
 
 ---
-
-## วิธีรันในเครื่อง (Local)
-เปิดไฟล์ `index.html` ด้วยเบราว์เซอร์ได้ทันที
-
-> แนะนำ: ใช้ Live Server เพื่อความสะดวกเวลาแก้โค้ด
-
-## วิธี Deploy ขึ้น GitHub Pages
-1. Push ไฟล์ทั้งหมดขึ้น GitHub repository
-2. ไปที่ **Settings → Pages**
-3. ตั้งค่าในหัวข้อ **Build and deployment**
-   - Source: **Deploy from a branch**
-   - Branch: `main` (หรือ `master`) และโฟลเดอร์ `/ (root)`
-4. กด Save แล้วรอประมาณ 1–2 นาที
-5. เปิด URL ของ GitHub Pages ที่ระบบแสดง
-
-ไม่ต้องใช้เซิร์ฟเวอร์ backend เพิ่มเติม
