@@ -69,8 +69,7 @@ function eigenvectorsForLambda(A,l){
       for(let j=pc+1;j<n;j++) s+=R[i][j]*x[j];
       x[pc]=-s;
     }
-    const xn=norm(x)||1;
-    vecs.push(x.map(v=>v/xn));
+    vecs.push(x);
   }
   return vecs;
 }
