@@ -1,5 +1,12 @@
 const EPS = 1e-8;
 
+// สรุปการทำงานไฟล์นี้ (matrix_calc.js)
+// 1) รับเมทริกซ์ A ขนาด 2x2 หรือ 3x3
+// 2) ประมาณค่า eigenvalues ด้วย QR iteration
+// 3) หา eigenvectors ของแต่ละ λ จาก (A - λI)x = 0 ด้วย RREF
+// 4) ตรวจว่า diagonalizable หรือไม่จากจำนวน eigenvectors อิสระ
+// 5) ถ้าได้: สร้าง P, หา P^-1 และคำนวณ D = P^-1 A P
+
 function clone(A){ return A.map(r=>[...r]); }
 function eye(n){ return Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>i===j?1:0)); }
 function mul(A,B){
